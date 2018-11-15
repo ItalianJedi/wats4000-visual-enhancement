@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="messages">
-      <!-- TODO: Add message-container and supply messages property. -->
+      <message-container v-bind:messages="messages"></message-container>
     </div>
     <div class="word-search">
       <form v-on:submit.prevent="findWords">
@@ -17,22 +17,29 @@
     <div class="word-list-container">
       <h2>Word List</h2>
       <ul class="word-list">
-        <!-- TODO: Add transition-group around the list item here to animate items in the word list. -->
-          <li v-for="word in wordList">{{ word }}&nbsp;<button v-on:click="removeWord(word)" class="remove-word">x</button></li>
+        <!--<transition-group name="rotate" tag="div" appear>
+          <li v-for="word in wordList" v-bind:key="word">{{ word }}&nbsp;<button v-on:click="removeWord(word)" class="remove-word">x</button></li>
+        </transition-group>-->
+        <transition-group name="wobble" enter-active-class="animated wobble">
+          <li v-for="word in wordList" v-bind:key="word">{{ word }}&nbsp;<button v-on:click="removeWord(word)" class="remove-word">x</button></li>
+        </transition-group>
       </ul>
     </div>
     <div class="results-container">
-      <!-- TODO: Add spinner here to show when search is in progress. -->
+      <spinner v-if="showSpinner"></spinner>
       <h2 v-if="results && results.length > 0">{{ results.length }} Words Found</h2>
       <ul v-if="results && results.length > 0" class="results">
-        <!-- TODO: Add transition-group around the list item here to animate items in the results list. -->
-          <li v-for="item in results" class="item">
+        <transition-group name="zoom" tag="div" appear>
+          <li v-for="item in results" class="item" v-bind:key="item.word">
             <p class="result-word">{{ item.word }}</p>
             <p><button v-on:click="addWord(item.word)" class="add-word">Add to WordList</button></p>
           </li>
+        </transition-group>
       </ul>
-      <!-- TODO: Add message to display here if no results are found. -->
-
+      <div v-if="results && results.length === 0" class="no-results">
+        <h2>No Words Found</h2>
+        <p>Please try your search again, buddy!</p>
+      </div>
 
     </div>
   </div>
@@ -42,15 +49,15 @@
 import axios from 'axios';
 // Note: vue2-animate is added using the require statement because it is a CSS file
 require('vue2-animate/dist/vue2-animate.min.css');
-// TODO: Import CubeSpinner for use as a child component
-// TODO: Import MessageContainer for use as a child component
+import CubeSpinner from '@/components/CubeSpinner';
+import MessageContainer from '@/components/MessageContainer';
 
 
 export default {
   name: 'WordSearch',
   components: {
-    // TODO: Define child components here.
-
+  'message-container': MessageContainer,
+  spinner: CubeSpinner
   },
   data () {
     return {
@@ -69,21 +76,32 @@ export default {
       if (this.wordList.indexOf(word) === -1) {
         this.wordList.push(word);
         console.log(`Added ${word} to wordList.`);
-        // TODO: Add message to this.messages to reflect this change.
+        let message = {
+          type: 'success',
+          text: `${word} successfully added to the list!`
+        };
+        this.messages.push(message);
 
       } else {
         console.log('Word is already on wordlist.');
-        // TODO: Add message to this.messages to reflect this change.
+        let message = {
+          type: 'info',
+          text: `${word} already in the list!`
+        };
+        this.messages.push(message);
 
       }
     },
     removeWord: function (word) {
       this.wordList.splice(this.wordList.indexOf(word), 1);
-      // TODO: Add message to this.messages to reflect this change.
-
+      let message = {
+          type: 'removed',
+          text: `${word} successfully removed from the list!`
+        };
+        this.messages.push(message);
     },
     findWords: function() {
-      // TODO: Show spinner when API request begins here.
+      this.showSpinner = true;
       this.results = null;
       axios.get('https://api.datamuse.com/words', {
         params: {
@@ -93,13 +111,17 @@ export default {
         }
       })
       .then( response => {
-        // TODO: Turn off spinner.
+        this.showSpinner = false;
         this.results = response.data;
       })
       .catch( error => {
-        // TODO: Turn off spinner
+        this.showSpinner = false;
 
-        // TODO: Add message to this.messages to display the errors.
+        let message = {
+          type: 'error',
+          text: error.message
+        };
+        this.messages.push(message);
 
       })
     }
@@ -108,6 +130,8 @@ export default {
 </script>
 
 <style scoped>
+@import "https://cdn.jsdelivr.net/npm/animate.css@3.5.1";
+
 .word-search {
   font-size: 1.2rem;
   white-space: nowrap;
@@ -202,4 +226,5 @@ ul.errors {
 a {
   color: #42b983;
 }
+
 </style>
